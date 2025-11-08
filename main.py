@@ -17,6 +17,13 @@ MODEL_PATH = "efficientnet_best_model (1).keras"
 # Define the class names in the correct alphabetical order
 # This MUST match the order from training (e.g., from train_ds.class_names)
 CLASS_NAMES = ['glioma', 'meningioma', 'notumor', 'pituitary']
+# Friendly display names for predictions
+DISPLAY_NAMES = {
+    'glioma': 'Glioma',
+    'meningioma': 'Meningioma',
+    'notumor': 'No Tumor',
+    'pituitary': 'Pituitary Tumor'
+}
 
 @st.cache_resource
 def load_keras_model(model_path):
@@ -31,14 +38,7 @@ def load_keras_model(model_path):
 # --- 2. Image Preprocessing Function ---
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
-    """
-    Preprocesses a PIL Image for model prediction.
-    - Resizes to (224, 224)
-    - Converts to RGB (handles grayscale or 4-channel images)
-    - Converts to NumPy array
-    - Adds a batch dimension
-    - *Does NOT normalize* (EfficientNetB0 does this internally)
-    """
+  
     # 1. Convert to RGB
     image = image.convert('RGB')
     
@@ -63,12 +63,15 @@ def main():
     model = load_keras_model(MODEL_PATH)
     
     if model is None:
-        st.warning("Model could not be loaded. Please check the model file.")
+        # Use error instead of warning when model cannot be loaded
+        st.error("Model could not be loaded. Please check the model file.")
         return
 
     # Layout: reserve a place for the MRI image (uploaded or sample)
     st.subheader("Brain MRI Scan")
-    image_container = st.empty()
+    # two-column layout: left for image, right for prediction/results
+    left_col, right_col = st.columns([1, 1])
+    image_container = left_col.empty()
 
     # File uploader
     uploaded_file = st.file_uploader(
@@ -84,7 +87,21 @@ def main():
         2. Any image under the `Testing/` folder (first match)
         3. Any file named `Te-gl_0010.jpg` anywhere under the project tree
         """
-        base_dir = os.path.dirname(__file__)
+        project_root = os.path.dirname(__file__)
+        preferred = os.path.join(project_root, "Te-gl_0010.jpg")
+        if os.path.isfile(preferred):
+            return preferred
+
+        # 2) Fallback: look for common image extensions in the Testing directory
+        base = os.path.join(project_root, "Testing")
+        if not os.path.isdir(base):
+            return None
+        patterns = ["**/*.jpg", "**/*.jpeg", "**/*.png"]
+        for pat in patterns:
+            matches = glob.glob(os.path.join(base, pat), recursive=True)
+            if matches:
+                return matches[0]
+        return None
 
         # 1) Check for the specific filename next to main.py
         candidate_root = os.path.join(base_dir, "Te-gl_0010.jpg")
@@ -113,7 +130,7 @@ def main():
             image = Image.open(uploaded_file)
             
             # 2. Display the uploaded image in the reserved container
-            image_container.image(image, caption="Uploaded Image", use_column_width=True)
+            image_container.image(image, caption="Uploaded Image", use_column_width=False, width=360)
             
             # 3. Preprocess the image
             preprocessed_img = preprocess_image(image)
@@ -128,31 +145,29 @@ def main():
                 class_index = np.argmax(score)
                 class_name = CLASS_NAMES[class_index]
                 confidence = np.max(score)
-
-            # 5. Display the results
-            st.success(f"**Prediction:** {class_name}")
-            st.write(f"**Confidence:** {confidence:.2%}")
+                
+            # 5. Display the results in the right column (use friendly display name)
+            display_name = DISPLAY_NAMES.get(class_name, class_name)
+            right_col.success(f"**Prediction:** {display_name}")
+            right_col.write(f"**Confidence:** {confidence:.2%}")
             
-            # # 6. (Optional) Show all probabilities
-            # st.subheader("All Probabilities:")
-            # # Create a dictionary for easier display
-            # probs_dict = {CLASS_NAMES[i]: score[i] for i in range(len(CLASS_NAMES))}
-            # st.bar_chart(probs_dict)
 
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            right_col.error(f"An error occurred: {e}")
     else:
         # No upload: show a sample MRI from the Testing folder if available
         sample_path = get_sample_image()
         if sample_path:
             try:
                 sample_img = Image.open(sample_path)
-                image_container.image(sample_img, caption=f"Sample Image — {os.path.basename(sample_path)}", use_column_width=True)
-                st.info("This is a sample MRI image. Upload your own to classify.")
+                image_container.image(sample_img, caption=f"Sample Image — {os.path.basename(sample_path)}", use_column_width=False, width=360)
+                right_col.info("This is a sample MRI image. Upload your own to classify.")
             except Exception as e:
-                st.warning(f"Found sample image but couldn't open it: {e}")
+                # replace warning with info to avoid showing warning UI
+                right_col.info(f"Found sample image but couldn't open it: {e}")
         else:
             image_container.info("No sample MRI image found. Upload an image to begin.")
+            right_col.info("Place 'Te-gl_0010.jpg' next to main.py or upload an image to classify.")
 
 if __name__ == "__main__":
     main()
