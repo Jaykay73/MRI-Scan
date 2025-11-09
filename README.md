@@ -1,6 +1,6 @@
 # **Brain Tumor MRI Classifier**
 
-This repository contains the code for an end-to-end deep learning project that trains a model to classify brain tumor types from MRI scans and deploys it as an interactive web application using Streamlit.
+This repository contains the code for an end-to-end deep learning project that trains a model to classify brain tumor types from MRI scans and deploys it as an interactive web application using Streamlit. The link to test it out is mri-scan.streamlit.app
 
 
 
@@ -74,9 +74,9 @@ Download the Model:
 Ensure your trained model file, efficientnet_best_model.keras, is in the root of the project directory.
 
 Run the Streamlit app:
-
+```bash
 streamlit run app.py
-
+```
 
 
 The application will open in your browser at http://localhost:8501.
@@ -85,9 +85,14 @@ The application will open in your browser at http://localhost:8501.
 
 Create a requirements.txt file with the following content:
 
-*streamlit
+```bash
+
+streamlit
 tensorflow
 numpy
-Pillow  # PIL*
+Pillow  # PIL
+
+```
+
 
 
