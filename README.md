@@ -1,6 +1,6 @@
 # **Brain Tumor MRI Classifier**
 
-This repository contains the code for an end-to-end deep learning project that trains a model to classify brain tumor types from MRI scans and deploys it as an interactive web application using Streamlit. The link to test it out is www.mri-scan.streamlit.app
+This repository contains the code for an end-to-end deep learning project that trains a model to classify brain tumor types from MRI scans and deploys it as an interactive web application using Streamlit. The link to test it out is https://mri-scan.streamlit.app
 
 
 
@@ -93,6 +93,7 @@ numpy
 Pillow  # PIL
 
 ```
+
 
 
 
